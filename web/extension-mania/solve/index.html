@@ -1,0 +1,11 @@
+<button id="free-click">I want clicks</button>
+<script>
+    const handler = (event) => {
+        event.returnValue = true;
+        event.preventDefault();
+        return false;
+    };
+    document.getElementById("free-click").addEventListener("click", () => {
+        window.addEventListener("beforeunload", handler);
+    });
+</script>

@@ -1,0 +1,64 @@
+<!-- legend has it this was written by chatgpt -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Error... 🐈‍⬛</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to bottom, #2c3e50, #4b6584);
+      font-family: 'Courier New', Courier, monospace;
+      color: #ddd;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+
+    .sad-cat {
+      font-size: 4rem;
+      animation: flicker 2s infinite;
+    }
+
+    @keyframes flicker {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .message {
+      font-size: 2rem;
+      color: #aaa;
+      margin: 1rem 0;
+    }
+
+    .error-output {
+      font-size: 1.2rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      color: #eee;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+
+    .message::after {
+      content: '...stop being mean to my service';
+      display: block;
+      font-size: 1.2rem;
+      color: #888;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="sad-cat">🐈‍⬛</div>
+  <div class="message">meow?</div>
+  <div class="error-output">{{msg}}</div>
+</body>
+</html>

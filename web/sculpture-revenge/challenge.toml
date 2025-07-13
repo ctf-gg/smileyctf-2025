@@ -1,0 +1,21 @@
+id = "web-sculpture-revenge"
+name = "Sculpture Revenge"
+author = "smashmaster"
+description = "client side python is cool. adapted from actf 2025 to require the harder solve."
+category = "web"
+points.min = 50
+points.max = 500
+strategy = "instanced"
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+
+[container.default.expose]
+8802 = "http"
+
+[[provide]]
+dir = "dist/"
+as = "sculpture-revenge"

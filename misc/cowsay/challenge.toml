@@ -1,0 +1,21 @@
+id = "misc-cowsay"
+name = "cowsay"
+author = "matthew"
+description = "Cows are violent criminals. So we jail them. Anyways enjoy this cowsay program!"
+category = "misc"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+privileged = true
+
+[container.default.expose]
+5000 = "tcp"
+
+[[provide]]
+dir = "dist/"
+as = "moo"

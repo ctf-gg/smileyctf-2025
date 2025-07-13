@@ -1,0 +1,14 @@
+id = "forensics-rorecovery2"
+name = "rorecovery2"
+author = "neil"
+description = "what is the name and ID of the hidden asset? format .;,;.{assetname_id}\n(same attachment as rorecovery1)"
+category = "forensics"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "src/flag.txt"
+
+[[provide]]
+dir = "dist/"
+as = "rorecovery12"

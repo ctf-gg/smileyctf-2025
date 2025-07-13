@@ -1,0 +1,21 @@
+id = "pwn-limit"
+name = "limit"
+author = "cope"
+description = "I heard you could malloc into scary places, so im adding a check to prevent that from ever happening!"
+category = "pwn"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+privileged = true
+
+[container.default.expose]
+5000 = "tcp"
+
+[[provide]]
+dir = "dist/"
+as = "limit"

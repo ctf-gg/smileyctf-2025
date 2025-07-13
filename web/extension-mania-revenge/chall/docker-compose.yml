@@ -1,0 +1,8 @@
+# rcds emulator
+version: '3'
+services:
+  main:
+    build:
+      context: .
+    ports:
+      - "0.0.0.0:3000:3000"

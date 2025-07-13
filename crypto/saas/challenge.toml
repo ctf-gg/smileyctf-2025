@@ -1,0 +1,21 @@
+id = "crypto-saas"
+name = "saas"
+author = "snow"
+description = "Every ctf has to have a chall called 'saas'. Its just tradition."
+category = "crypto"
+points.min = 50
+points.max = 500
+# test comment
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+privileged = true
+
+[container.default.expose]
+5000 = "tcp"
+
+[[provide]]
+dir = "dist/"
+as = "saas"

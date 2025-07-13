@@ -1,0 +1,21 @@
+{
+  "name": "extension-mania",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Fun with extensions.",
+  "dependencies": {
+    "express": "^5.1.0",
+    "puppeteer": "24.10.0"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/chrome": "^0.0.326"
+  }
+}

@@ -1,0 +1,21 @@
+id = "pwn-teemo-tuesday"
+name = "teemo-tuesday"
+author = "unvariant"
+description = "![teemo tuesday](https://media1.tenor.com/m/VfS59XCuCmQAAAAd/league-of-legends-teemo.gif)"
+category = "pwn"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+privileged = true
+
+[container.default.expose]
+5000 = "tcp"
+
+[[provide]]
+dir = "dist/"
+as = "teemo-tuesday"

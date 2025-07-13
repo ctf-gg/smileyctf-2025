@@ -1,0 +1,21 @@
+id = "pwn-debuggable-3"
+name = "debuggable-3"
+author = "unvariant"
+description = "Everyone knows plain GDB is horrible to work with, so I loaded a nice plugin for you this time."
+category = "pwn"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+privileged = true
+
+[container.default.expose]
+5000 = "tcp"
+
+[[provide]]
+dir = "dist/"
+as = "debuggable-3"

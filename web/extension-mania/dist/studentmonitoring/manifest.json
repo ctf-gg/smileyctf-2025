@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Good Guardian",
+  "description": "totally not spyware",
+  "version": "1.0",
+  "action": {
+    "default_icon": "icon.png"
+  },
+  "permissions": [
+    "tabs",
+    "notifications"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "js/sw.js"
+  },
+  "content_scripts": [],
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

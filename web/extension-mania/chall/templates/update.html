@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/axist@latest/dist/axist.min.css" />
+    <title>Virtual Static Site Updater</title>
+</head>
+<body>
+    <main role="main">
+        <div class="header">
+            <h2>Extension Mania: Webpage Editor</h2>
+        </div>
+        <form action="/update" method="POST">
+            <textarea id="editor" placeholder="but it refused..." style="width:100%;" name="html"></textarea>
+            <button type="submit">Update</button>
+        </form>
+        <p>
+            We'll serve this content to anyone who visits through `coolctfgames.localhost` (port may vary depending on your setup, we are using 3000 by default).
+        </p>
+        <h3>
+            Trigger Admin Bot (tied to your instance)
+        </h3>
+        <p>
+            Please READ the source code fully before doing this. You should maybe perhaps test on local =) =) =). There is a short cool down to prevent abuse.
+        </p>
+        <form action="/bot" method="POST">
+            <input type = "url" name = "url" placeholder = "http://coolctfgames.localhost:3000" style="width:100%;" value="http://coolctfgames.localhost:3000">
+            <button type="submit">
+                Run Bot
+            </button>
+        </form>
+    </main>
+</body>
+</html>

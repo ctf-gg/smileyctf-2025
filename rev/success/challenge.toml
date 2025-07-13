@@ -1,0 +1,14 @@
+id = "rev-success"
+name = "Success"
+author = "flocto"
+description = "avoid it at all costs"
+category = "rev"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "src/flag.txt"
+
+[[provide]]
+dir = "dist/"
+as = "success"

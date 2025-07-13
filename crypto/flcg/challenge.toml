@@ -1,0 +1,14 @@
+id = "crypto-flcg"
+name = "flcg"
+author = "helloperson"
+description = "Surely you can't crack my float-based lcg, it's too high for you to reach."
+category = "crypto"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "src/flag.txt"
+
+[[provide]]
+dir = "dist/"
+as = "flcg"

@@ -1,0 +1,21 @@
+id = "misc-offset"
+name = "offset"
+author = "helloperson / quasar"
+description = "somehow this exists, don't question why"
+category = "misc"
+points.min = 50
+points.max = 500
+strategy = "instanced"
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+
+[container.default.expose]
+5000 = "tcp"
+
+[[provide]]
+dir = "dist/"
+as = "offset"

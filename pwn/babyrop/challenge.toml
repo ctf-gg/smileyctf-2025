@@ -1,0 +1,21 @@
+id = "pwn-babyrop"
+name = "babyrop"
+author = "Eth007"
+description = "bopity ropity rop. the cop ran up the mop. the mop struck two, and over he flew, bopity ropity rop."
+category = "pwn"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+privileged = true
+
+[container.default.expose]
+1337 = "tcp"
+
+[[provide]]
+dir = "dist/"
+as = "babyrop"

@@ -1,0 +1,1686 @@
+diff --git a/coproc/.gitignore b/coproc/.gitignore
+new file mode 100644
+index 0000000..7376f58
+--- /dev/null
++++ b/coproc/.gitignore
+@@ -0,0 +1,6 @@
++ram_file.mem
++rom_file.mem
++compile_commands.json
++.cache/
++obj_dir/
++libvcpu.so
+\ No newline at end of file
+diff --git a/coproc/Makefile b/coproc/Makefile
+new file mode 100644
+index 0000000..44ea0a6
+--- /dev/null
++++ b/coproc/Makefile
+@@ -0,0 +1,7 @@
++CFLAGS="-Wl,-T,linker.ld -O1 -flto -fno-inline-functions"
++
++obj_dir/libverilated.a: src/ALU.sv src/Control.sv src/CPU.h.sv src/CPU.sv src/Hazard.sv src/ImmGen.sv src/PC.sv src/RAM.sv src/Register.sv src/WriteBack.sv
++	./prep.sh
++
++vcpu: obj_dir/libverilated.a vcpu.cpp
++	g++ -shared -fPIC -Iobj_dir -I/usr/share/verilator/include vcpu.cpp -o libvcpu.so /usr/share/verilator/include/verilated.cpp -lVCPU -Lobj_dir -lverilated -O3
+\ No newline at end of file
+diff --git a/coproc/prep.sh b/coproc/prep.sh
+new file mode 100755
+index 0000000..dc598d0
+--- /dev/null
++++ b/coproc/prep.sh
+@@ -0,0 +1,9 @@
++#!/bin/sh
++
++set -e
++
++rm -rf obj_dir
++verilator +1800-2017ext+sv CPU.h.sv -DSIMULATION -Isrc -o TestBench -CFLAGS -fPIC -cc CPU.sv -O3
++cd obj_dir
++make -f VCPU.mk
++cd ..
+\ No newline at end of file
+diff --git a/coproc/src/ALU.sv b/coproc/src/ALU.sv
+new file mode 100644
+index 0000000..dec391a
+--- /dev/null
++++ b/coproc/src/ALU.sv
+@@ -0,0 +1,115 @@
++import Common::*;
++
++module ALU (
++    input  logic   clk,
++    input  logic   rst,
++    input  Signals i_signals,
++    output Signals o_signals
++);
++
++    logic [31:0] a;
++    logic [31:0] b;
++
++    always_comb begin
++        case (i_signals.asel)
++            Register:       a = i_signals.reg1;
++            ProgramCounter: a = i_signals.pc;
++            default:        a = 0;
++        endcase
++
++        case (i_signals.bsel)
++            Register:  b = i_signals.reg2;
++            Immediate: b = i_signals.imm;
++            default:   b = 0;
++        endcase
++    end
++
++    logic [32:0] result;
++    logic signed [32:0] s_a;
++    assign s_a = 33'(signed'(a));
++    logic signed [32:0] s_b;
++    assign s_b = 33'(signed'(b));
++    logic [32:0] u_a;
++    assign u_a = 33'(unsigned'(a));
++    logic [32:0] u_b;
++    assign u_b = 33'(unsigned'(b));
++
++    always_ff @(posedge clk) begin
++        if (rst) begin
++            // o_signals.pc    <= 0;
++            // o_signals.reg2        <= 0;
++            o_signals.wback <= 0;
++            // o_signals.wreg        <= 0;
++            // o_signals.wdata       <= 0;
++            // o_signals.branch      <= 0;
++            // o_signals.flags.zero  <= 0;
++            // o_signals.flags.carry <= 0;
++            o_signals.cond  <= Never;
++            o_signals.memr  <= 0;
++            o_signals.memw  <= 0;
++            // o_signals.memt        <= LoadByte;
++        end else begin
++            // o_signals.pc    <= i_signals.pc + 4;
++            o_signals.reg2  <= i_signals.reg2;
++            o_signals.wback <= i_signals.wback;
++            o_signals.wreg  <= i_signals.wreg;
++            o_signals.cond  <= i_signals.cond;
++            o_signals.memr  <= i_signals.memr;
++            o_signals.memw  <= i_signals.memw;
++            o_signals.memt  <= i_signals.memt;
++
++            // $display("a = 0x%0x", s_a);
++            // $display("b = 0x%0x", s_b);
++            // $display("wback = 0x%0x", i_signals.wback);
++            // $display("wreg = 0x%0x", i_signals.wreg);
++            // $display("op = %0d", i_signals.op);
++
++            case (i_signals.op)
++                Op::Add: begin
++                    result = s_a + s_b;
++                end
++                Op::Sub: begin
++                    // $display("cond = %0d, a = %0x, b = %0x", i_signals.cond, s_a, s_b);
++                    result = s_a - s_b;
++                end
++                Op::USub: begin
++                    result = u_a - u_b;
++                end
++                Op::Xor: begin
++                    result = u_a ^ u_b;
++                end
++                Op::Or: begin
++                    result = u_a | u_b;
++                end
++                Op::And: begin
++                    result = u_a & u_b;
++                end
++                Op::Shl: begin
++                    result = u_a << u_b[4:0];
++                end
++                Op::Shr: begin
++                    result = u_a >> u_b[4:0];
++                end
++                Op::Asr: begin
++                    result = s_a >>> u_b[4:0];
++                end
++                Op::Slt: begin
++                    result = s_a - s_b;
++                    result = 33'(result[32]);
++                end
++                Op::USlt: begin
++                    result = u_a - u_b;
++                    result = 33'(result[32]);
++                end
++                default: begin
++                    result = 0;
++                end
++            endcase
++            o_signals.wdata <= result;
++            o_signals.branch <= ((i_signals.pcsel == 0) ? i_signals.pc : i_signals.reg1) + i_signals.jimm;
++            o_signals.flags.zero <= result[31:0] == 0;
++            o_signals.flags.carry <= result[32];
++        end
++    end
++
++endmodule
+diff --git a/coproc/src/CPU.h.sv b/coproc/src/CPU.h.sv
+new file mode 100644
+index 0000000..bb7c4ed
+--- /dev/null
++++ b/coproc/src/CPU.h.sv
+@@ -0,0 +1,174 @@
++package Opcode;
++    typedef enum logic [6:0] {
++        RegImm = 7'b00_100_11,
++        RegReg = 7'b01_100_11,
++        Load   = 7'b00_000_11,
++        Store  = 7'b01_000_11,
++        Branch = 7'b11_000_11,
++        Jal    = 7'b11_011_11,
++        Jalr   = 7'b11_001_11,
++        Lui    = 7'b01_101_11,
++        Auipc  = 7'b00_101_11
++    } Opcode;
++endpackage
++
++package Op;
++    typedef enum {
++        Add,
++        Sub,
++        USub,
++        Xor,
++        Or,
++        And,
++        Shl,
++        Shr,
++        Asr,
++        Slt,
++        USlt
++    } Operation;
++endpackage
++
++package Mem;
++    // must be power of 2 aligned
++    logic [31:0] framebuffer = 'h1000000;
++endpackage
++
++package Common;
++    typedef struct packed {
++        logic [6:0] funct7;
++        logic [4:0] rs2;
++        logic [4:0] rs1;
++        logic [2:0] funct3;
++        logic [4:0] rd;
++        logic [6:0] opcode;
++    } RType;
++
++    typedef struct packed {
++        logic [11:0] imm;
++        logic [4:0]  rs1;
++        logic [2:0]  funct3;
++        logic [4:0]  rd;
++        logic [6:0]  opcode;
++    } IType;
++
++    typedef struct packed {
++        logic [6:0] immhi;
++        logic [4:0] rs2;
++        logic [4:0] rs1;
++        logic [2:0] funct3;
++        logic [4:0] immlo;
++        logic [6:0] opcode;
++    } SType;
++
++    typedef struct packed {
++        logic imm4;
++        logic [5:0] imm2;
++        logic [4:0] rs2;
++        logic [4:0] rs1;
++        logic [2:0] funct3;
++        logic [3:0] imm1;
++        logic imm3;
++        logic [6:0] opcode;
++    } BType;
++
++    typedef struct packed {
++        logic [19:0] imm;
++        logic [4:0]  rd;
++        logic [6:0]  opcode;
++    } UType;
++
++    typedef struct packed {
++        logic imm4;
++        logic [9:0] imm1;
++        logic imm2;
++        logic [7:0] imm3;
++        logic [4:0] rd;
++        logic [6:0] opcode;
++    } JType;
++
++    typedef union packed {
++        RType r;
++        IType i;
++        SType s;
++        BType b;
++        UType u;
++        JType j;
++    } Insn;
++
++    typedef enum {
++        Register,
++        Immediate,
++        ProgramCounter
++    } Selector;
++
++    typedef struct {
++        logic zero;
++        logic carry;
++    } Flags;
++
++    typedef enum {
++        Zero,
++        NotZero,
++        Carry,
++        NotCarry,
++        Never,
++        Always
++    } Condition;
++
++    typedef enum {
++        LoadByte,
++        LoadHalf,
++        LoadWord,
++        ULoadByte,
++        ULoadHalf,
++        StoreByte,
++        StoreHalf,
++        StoreWord
++    } MemType;
++
++    typedef struct {
++        logic [31:0] pc;
++        Insn insn;
++
++        logic [4:0]   rs1;
++        logic [4:0]   rs2;
++        logic [31:0]  reg1;
++        logic [31:0]  reg2;
++        Op::Operation op;
++        logic [31:0]  imm;
++
++        Selector asel;
++        Selector bsel;
++        logic pcsel;
++
++        Flags flags;
++        Condition cond;
++
++        logic [31:0] jimm;
++        logic [31:0] branch;
++
++        logic   memr;
++        logic   memw;
++        MemType memt;
++
++        logic wback;
++        logic [4:0] wreg;
++        logic [32:0] wdata;
++    } Signals;
++
++`ifdef SIMULATION
++
++    `define err(ARGS) \
++    $error("%s", $sformatf ARGS )
++
++    `define log(ARGS) \
++    $display("%s", $sformatf ARGS )
++
++`else
++
++    `define err(ARGS)
++    `define log(ARGS)
++
++`endif
++
++endpackage
+diff --git a/coproc/src/CPU.sv b/coproc/src/CPU.sv
+new file mode 100644
+index 0000000..b978c72
+--- /dev/null
++++ b/coproc/src/CPU.sv
+@@ -0,0 +1,162 @@
++import Common::*;
++
++module CPU (
++    input logic i_clk,
++    input logic i_rst,
++    input logic [14:0] i_switches,
++    input logic [4:0] i_buttons,
++    output logic [3:0] gpio,
++
++    output logic [11:0] leds,
++    output logic o_clk,
++
++    output logic vga_hsync,
++    output logic vga_vsync,
++    output logic [3:0] vga_r,
++    output logic [3:0] vga_g,
++    output logic [3:0] vga_b,
++    output logic o_stall,
++
++    output logic o_hypervisor_call,
++    output logic [3:0] o_hypervisor_memt,
++    output logic [31:0] o_hypervisor_addr,
++    output logic [31:0] o_hypervisor_val
++);
++
++    logic clk;
++    assign clk = i_clk;
++
++    logic rst = 1;
++    always @(posedge clk) begin
++        rst <= i_rst;
++    end
++
++    // constant 10 khz timer
++    // depends on the external 100 mhz clock and not the internal cpu clock
++    logic [31:0] timer = 0;
++    int timer_counter = 0;
++    always @(posedge i_clk) begin
++        if (timer_counter == 10 * 1000 - 1) begin
++            timer_counter <= 0;
++            timer <= timer + 1;
++        end else begin
++            timer_counter <= timer_counter + 1;
++        end
++    end
++
++    logic [31:0] debug;
++    assign leds[10:0] = debug[10:0];
++
++    logic stall;
++    logic flush;
++
++    assign o_stall = stall;
++
++    Signals fetch_signals;
++
++    Signals intermediate_decode_signals_regs;
++    Signals intermediate_decode_signals_con;
++    Signals intermediate_decode_signals_imm_gen;
++
++    Signals decode_signals;
++    Signals alu_signals;
++    Signals mem_signals;
++    Signals wb_signals;
++
++    PC pc_i (
++        .clk(clk),
++        .rst(rst),
++        .stall(stall),
++        .i_signals(wb_signals),
++        .o_signals(fetch_signals)
++    );
++
++    /* verilator lint_off MULTIDRIVEN */
++
++    Register regs_i (
++        .clk(clk),
++        .rst(rst),
++        .stall(stall),
++        .i_buffer(fetch_signals),
++        .i_wback(wb_signals.wback),
++        .i_wreg(wb_signals.wreg),
++        .i_wdata(wb_signals.wdata[31:0]),
++        .o_signals(intermediate_decode_signals_regs),
++        .o_debug(debug)
++    );
++
++    Control con_i (
++        .clk(clk),
++        .rst(rst),
++        .stall(stall),
++        .flush(flush),
++        .i_buffer(fetch_signals),
++        .o_signals(intermediate_decode_signals_con)
++    );
++
++    ImmGen imm_gen_i (
++        .clk(clk),
++        .rst(rst),
++        .stall(stall),
++        .i_buffer(fetch_signals),
++        .o_signals(intermediate_decode_signals_imm_gen)
++    );
++
++    Hazard hazard_i (
++        .clk(clk),
++        .rst(rst),
++        .o_stall(stall),
++        .o_flush(flush),
++        .i_buffer(fetch_signals),
++        .decode_signals(decode_signals),
++        .alu_signals(alu_signals),
++        .mem_signals(mem_signals),
++        .wb_signals(wb_signals)
++    );
++
++    assign decode_signals.pc    = intermediate_decode_signals_con.pc;
++    assign decode_signals.reg1  = intermediate_decode_signals_regs.reg1;
++    assign decode_signals.reg2  = intermediate_decode_signals_regs.reg2;
++    assign decode_signals.op    = intermediate_decode_signals_con.op;
++    assign decode_signals.imm   = intermediate_decode_signals_imm_gen.imm;
++    assign decode_signals.asel  = intermediate_decode_signals_con.asel;
++    assign decode_signals.bsel  = intermediate_decode_signals_con.bsel;
++    assign decode_signals.pcsel = intermediate_decode_signals_con.pcsel;
++    assign decode_signals.cond  = stall ? Never : intermediate_decode_signals_con.cond;
++    assign decode_signals.jimm  = intermediate_decode_signals_imm_gen.jimm;
++    assign decode_signals.memr  = stall ? 0 : intermediate_decode_signals_con.memr;
++    assign decode_signals.memw  = stall ? 0 : intermediate_decode_signals_con.memw;
++    assign decode_signals.memt  = intermediate_decode_signals_con.memt;
++    assign decode_signals.wback = stall ? 0 : intermediate_decode_signals_con.wback;
++    assign decode_signals.wreg  = intermediate_decode_signals_con.wreg;
++
++    ALU alu_i (
++        .clk(clk),
++        .rst(rst),
++        .i_signals(decode_signals),
++        .o_signals(alu_signals)
++    );
++
++    RAM ram_i (
++        .clk(clk),
++        .rst(rst),
++        .i_switches(i_switches),
++        .i_buttons(i_buttons),
++        .i_timer(timer),
++        .gpio(gpio),
++        .o_hypervisor_call(o_hypervisor_call),
++        .o_hypervisor_memt(o_hypervisor_memt),
++        .o_hypervisor_addr(o_hypervisor_addr),
++        .o_hypervisor_val(o_hypervisor_val),
++        .i_signals(alu_signals),
++        .o_signals(mem_signals)
++    );
++
++    WriteBack write_back_i (
++        .clk(clk),
++        .rst(rst),
++        .i_signals(mem_signals),
++        .o_signals(wb_signals)
++    );
++
++endmodule
+diff --git a/coproc/src/Control.sv b/coproc/src/Control.sv
+new file mode 100644
+index 0000000..576795f
+--- /dev/null
++++ b/coproc/src/Control.sv
+@@ -0,0 +1,214 @@
++import Common::*;
++
++module Control (
++    input  logic   clk,
++    input  logic   rst,
++    input  logic   stall,
++    input  logic   flush,
++    input  Signals i_buffer,
++    output Signals o_signals
++);
++
++    Signals i_current;
++    Signals i_signals;
++    assign i_signals = stall ? i_current : i_buffer;
++
++    Insn insn;
++    assign insn = i_signals.insn;
++
++    always_ff @(posedge clk) begin
++        if (rst || flush) begin
++            o_signals.pc    <= 0;
++            o_signals.op    <= Op::Add;
++            o_signals.wreg  <= 0;
++            o_signals.asel  <= Register;
++            o_signals.bsel  <= Register;
++            o_signals.pcsel <= 0;
++            o_signals.cond  <= Never;
++            o_signals.memr  <= 0;
++            o_signals.memw  <= 0;
++            o_signals.memt  <= LoadByte;
++        end else begin
++            if (!stall) begin
++                i_current <= i_buffer;
++            end
++
++            o_signals.pc    <= i_signals.pc;
++            o_signals.pcsel <= insn.r.opcode == Opcode::Jalr;
++            o_signals.op    <= Op::Add;
++
++            case (insn.r.opcode)
++                Opcode::RegReg: begin
++                    case (insn.r.funct3)
++                        'h0: begin
++                            case (insn.r.funct7)
++                                'h00: o_signals.op <= Op::Add;
++                                'h20: o_signals.op <= Op::Sub;
++                            endcase
++                        end
++                        'h4: o_signals.op <= Op::Xor;
++                        'h1: o_signals.op <= Op::Shl;
++                        'h5: begin
++                            case (insn.r.funct7)
++                                'h00: o_signals.op <= Op::Shr;
++                                'h20: o_signals.op <= Op::Asr;
++                            endcase
++                        end
++                        'h6: o_signals.op <= Op::Or;
++                        'h7: o_signals.op <= Op::And;
++                        'h2: o_signals.op <= Op::Slt;
++                        'h3: o_signals.op <= Op::USlt;
++                    endcase
++
++                    o_signals.wreg  <= insn.r.rd;
++                    o_signals.wback <= 1;
++                    o_signals.asel  <= Register;
++                    o_signals.bsel  <= Register;
++                end
++                Opcode::RegImm: begin
++                    case (insn.i.funct3)
++                        'h0: o_signals.op <= Op::Add;
++                        'h4: o_signals.op <= Op::Xor;
++                        'h1: o_signals.op <= Op::Shl;
++                        'h5: begin
++                            case (insn.i.imm[11:5])
++                                'h00: o_signals.op <= Op::Shr;
++                                'h20: o_signals.op <= Op::Asr;
++                            endcase
++                        end
++                        'h6: o_signals.op <= Op::Or;
++                        'h7: o_signals.op <= Op::And;
++                        'h2: o_signals.op <= Op::Slt;
++                        'h3: o_signals.op <= Op::USlt;
++                    endcase
++
++                    o_signals.wreg  <= insn.i.rd;
++                    o_signals.wback <= 1;
++                    o_signals.asel  <= Register;
++                    o_signals.bsel  <= Immediate;
++                end
++                Opcode::Branch: begin
++                    case (insn.b.funct3)
++                        'h0, 'h1, 'h4, 'h5: o_signals.op <= Op::Sub;
++                        'h6, 'h7: o_signals.op <= Op::USub;
++                    endcase
++
++                    o_signals.wreg  <= 0;
++                    o_signals.wback <= 0;
++                    o_signals.asel  <= Register;
++                    o_signals.bsel  <= Register;
++                end
++                Opcode::Jal: begin
++                    o_signals.op    <= Op::Add;
++                    o_signals.wreg  <= insn.j.rd;
++                    o_signals.wback <= 1;
++                    o_signals.asel  <= ProgramCounter;
++                    o_signals.bsel  <= Immediate;
++                end
++                Opcode::Jalr: begin
++                    o_signals.op    <= Op::Add;
++                    o_signals.wreg  <= insn.i.rd;
++                    o_signals.wback <= 1;
++                    o_signals.asel  <= ProgramCounter;
++                    o_signals.bsel  <= Immediate;
++                end
++                Opcode::Load: begin
++                    o_signals.op    <= Op::Add;
++                    o_signals.wreg  <= insn.i.rd;
++                    o_signals.wback <= 1;
++                    o_signals.asel  <= Register;
++                    o_signals.bsel  <= Immediate;
++                end
++                Opcode::Store: begin
++                    o_signals.op    <= Op::Add;
++                    o_signals.wreg  <= 0;
++                    o_signals.wback <= 0;
++                    o_signals.asel  <= Register;
++                    o_signals.bsel  <= Immediate;
++                end
++                Opcode::Lui: begin
++                    o_signals.op    <= Op::Add;
++                    o_signals.wreg  <= insn.u.rd;
++                    o_signals.wback <= 1;
++                    o_signals.asel  <= Register;
++                    o_signals.bsel  <= Immediate;
++                end
++                Opcode::Auipc: begin
++                    o_signals.op    <= Op::Add;
++                    o_signals.wreg  <= insn.u.rd;
++                    o_signals.wback <= 1;
++                    o_signals.asel  <= ProgramCounter;
++                    o_signals.bsel  <= Immediate;
++                end
++                default: begin
++                    o_signals.op    <= Op::Add;
++                    o_signals.wreg  <= 0;
++                    o_signals.wback <= 0;
++                    o_signals.asel  <= Register;
++                    o_signals.bsel  <= Register;
++                end
++            endcase
++
++            o_signals.memt <= LoadByte;
++
++            case (insn.r.opcode)
++                Opcode::Load: begin
++                    o_signals.memr <= 1;
++                    o_signals.memw <= 0;
++                    case (insn.i.funct3)
++                        'h0: o_signals.memt <= LoadByte;
++                        'h1: o_signals.memt <= LoadHalf;
++                        'h2: o_signals.memt <= LoadWord;
++                        'h4: o_signals.memt <= ULoadByte;
++                        'h5: o_signals.memt <= ULoadHalf;
++                    endcase
++                end
++                Opcode::Store: begin
++                    o_signals.memr <= 0;
++                    o_signals.memw <= 1;
++                    case (insn.s.funct3)
++                        'h0: o_signals.memt <= StoreByte;
++                        'h1: o_signals.memt <= StoreHalf;
++                        'h2: o_signals.memt <= StoreWord;
++                        default: begin
++
++                        end
++                    endcase
++                end
++                default: begin
++                    o_signals.memr <= 0;
++                    o_signals.memw <= 0;
++                    o_signals.memt <= LoadByte;
++                end
++            endcase
++
++            o_signals.cond <= Never;
++
++            case (insn.r.opcode)
++                Opcode::Branch: begin
++                    case (insn.b.funct3)
++                        // beq
++                        'h0: o_signals.cond <= Zero;
++                        // bne
++                        'h1: o_signals.cond <= NotZero;
++                        // blt
++                        'h4: o_signals.cond <= Carry;
++                        // bge
++                        'h5: o_signals.cond <= NotCarry;
++                        // bltu
++                        'h6: o_signals.cond <= Carry;
++                        // bgeu
++                        'h7: o_signals.cond <= NotCarry;
++                    endcase
++                end
++                Opcode::Jal, Opcode::Jalr: begin
++                    o_signals.cond <= Always;
++                end
++                default: begin
++                    o_signals.cond <= Never;
++                end
++            endcase
++        end
++    end
++
++endmodule
+diff --git a/coproc/src/Hazard.sv b/coproc/src/Hazard.sv
+new file mode 100644
+index 0000000..3d98de5
+--- /dev/null
++++ b/coproc/src/Hazard.sv
+@@ -0,0 +1,117 @@
++import Common::*;
++
++module Hazard (
++    input  logic   clk,
++    input  logic   rst,
++    input  Signals i_buffer,
++    input  Signals decode_signals,
++    input  Signals alu_signals,
++    input  Signals mem_signals,
++    input  Signals wb_signals,
++    output logic   o_stall,
++    output logic   o_flush
++);
++
++    Signals i_current;
++    Signals i_signals;
++    assign i_signals = o_stall ? i_current : i_buffer;
++
++    Insn insn;
++    assign insn = i_signals.insn;
++
++    logic [4:0] rs1;
++    logic [4:0] rs2;
++    logic branch;
++
++    always_comb begin
++        case (insn.r.opcode)
++            Opcode::RegReg: begin
++                rs1 = insn.r.rs1;
++                rs2 = insn.r.rs2;
++            end
++            Opcode::RegImm, Opcode::Jalr, Opcode::Load: begin
++                rs1 = insn.i.rs1;
++                rs2 = 0;
++            end
++            Opcode::Branch: begin
++                rs1 = insn.b.rs1;
++                rs2 = insn.b.rs2;
++            end
++            Opcode::Store: begin
++                rs1 = insn.s.rs1;
++                rs2 = insn.s.rs2;
++            end
++            Opcode::Jal, Opcode::Auipc, Opcode::Lui: begin
++                rs1 = 0;
++                rs2 = 0;
++            end
++            default: begin
++                rs1 = 0;
++                rs2 = 0;
++            end
++        endcase
++
++        case (insn.r.opcode)
++            Opcode::Jal, Opcode::Jalr, Opcode::Branch: begin
++                branch = 1;
++            end
++            default: begin
++                branch = 0;
++            end
++        endcase
++    end
++
++    always_ff @(posedge clk) begin
++        if (rst) begin
++            o_stall <= 0;
++            o_flush <= 0;
++        end else begin
++            // $display("pc = %0x", i_signals.pc);
++
++            if (!o_stall) begin
++                i_current <= i_buffer;
++            end
++
++            if (
++                (
++                    decode_signals.wback &&
++                    (decode_signals.wreg != 0) &&
++                    (rs1 == decode_signals.wreg || rs2 == decode_signals.wreg)
++                )
++                || (
++                    alu_signals.wback &&
++                    (alu_signals.wreg != 0) &&
++                    (rs1 == alu_signals.wreg || rs2 == alu_signals.wreg)
++                )
++                || (
++                    mem_signals.wback &&
++                    (mem_signals.wreg != 0) &&
++                    (rs1 == mem_signals.wreg || rs2 == mem_signals.wreg)
++                )
++                || (decode_signals.cond != Never)
++                || (alu_signals.cond != Never)
++                || (mem_signals.cond != Never)
++                || (wb_signals.cond != Never && wb_signals.pcsel == 0)
++                ) begin
++                // $display("decode signals.cond = %0d", decode_signals.cond);
++                // $display("alu    signals.cond = %0d", alu_signals.cond);
++                // $display("mem    signals.cond = %0d", mem_signals.cond);
++                // $display("rs1 = %0d, rs2 = %0d", rs1, rs2);
++                // $display("stalling with insn = %0x", insn);
++                o_stall <= 1;
++            end else begin
++                o_stall <= 0;
++            end
++
++            if ((decode_signals.cond != Never)
++                || (alu_signals.cond != Never)
++                || (mem_signals.cond != Never)
++            ) begin
++                o_flush <= 1;
++            end else begin
++                o_flush <= 0;
++            end
++        end
++    end
++
++endmodule
+diff --git a/coproc/src/ImmGen.sv b/coproc/src/ImmGen.sv
+new file mode 100644
+index 0000000..c8070f6
+--- /dev/null
++++ b/coproc/src/ImmGen.sv
+@@ -0,0 +1,76 @@
++import Common::*;
++
++module ImmGen (
++    input  logic   clk,
++    input  logic   rst,
++    input  logic   stall,
++    input  Signals i_buffer,
++    output Signals o_signals
++);
++
++    Signals i_current;
++    Signals i_signals;
++    assign i_signals = stall ? i_current : i_buffer;
++
++    Insn insn;
++    assign insn = i_signals.insn;
++
++    always_ff @(posedge clk) begin
++        if (rst) begin
++            o_signals.imm  <= 0;
++            o_signals.jimm <= 0;
++        end else begin
++            if (!stall) begin
++                i_current <= i_buffer;
++            end
++
++            case (insn.r.opcode)
++                Opcode::RegImm: begin
++                    case (insn.i.funct3)
++                        'h1:     o_signals.imm <= 32'(insn.i.imm[4:0]);
++                        'h5:     o_signals.imm <= 32'(insn.i.imm[4:0]);
++                        default: o_signals.imm <= 32'(signed'(insn.i.imm));
++                    endcase
++                    // if (insn != 'h13) begin
++                    //     $display("imm = %d", insn.i.imm);
++                    // end
++                end
++                Opcode::Jal, Opcode::Jalr: begin
++                    o_signals.imm <= 32'd4;
++                end
++                Opcode::Load: begin
++                    o_signals.imm <= 32'(signed'(insn.i.imm));
++                end
++                Opcode::Store: begin
++                    o_signals.imm <= 32'(signed'({insn.s.immhi, insn.s.immlo}));
++                end
++                Opcode::Lui, Opcode::Auipc: begin
++                    o_signals.imm <= {insn.u.imm, 12'd0};
++                end
++                default: begin
++                    o_signals.imm <= 0;
++                end
++            endcase
++
++            case (insn.r.opcode)
++                Opcode::Jalr: begin
++                    o_signals.jimm <= 32'(signed'(insn.i.imm));
++                end
++                Opcode::Branch: begin
++                    o_signals.jimm <= 32'(signed'({
++                        insn.b.imm4, insn.b.imm3, insn.b.imm2, insn.b.imm1, 1'b0
++                    }));
++                end
++                Opcode::Jal: begin
++                    o_signals.jimm <= 32'(signed'({
++                        insn.j.imm4, insn.j.imm3, insn.j.imm2, insn.j.imm1, 1'b0
++                    }));
++                end
++                default: begin
++                    o_signals.jimm <= 0;
++                end
++            endcase
++        end
++    end
++
++endmodule
+diff --git a/coproc/src/PC.sv b/coproc/src/PC.sv
+new file mode 100644
+index 0000000..45427de
+--- /dev/null
++++ b/coproc/src/PC.sv
+@@ -0,0 +1,43 @@
++import Common::*;
++
++module PC (
++    input  logic   clk,
++    input  logic   rst,
++    input  logic   stall,
++    input  Signals i_signals,
++    output Signals o_signals
++);
++
++    // support 128 instructions
++    logic [31:0] mem[0:4096-1];
++    initial $readmemh("rom_file.mem", mem);
++
++    logic [31:0] pc = 0;
++    logic started = 0;
++
++    always @(posedge clk) begin
++        if (rst) begin
++            pc <= 0;
++            o_signals.pc <= 0;
++            o_signals.insn <= 'h13;
++        end else begin
++            if (i_signals.pcsel) begin
++                // $display("accepting pc = %0x", i_signals.pc);
++                o_signals.pc <= i_signals.pc;
++                o_signals.insn <= mem[i_signals.pc>>2];
++                pc <= i_signals.pc + 4;
++            end else begin
++                if (stall) begin
++
++                end else begin
++                    o_signals.pc <= pc;
++                    o_signals.insn <= mem[pc>>2];
++                    pc <= pc + 4;
++                end
++            end
++
++            // $display("stall = %0d, pc = %0x", stall, pc);
++        end
++    end
++
++endmodule
+diff --git a/coproc/src/RAM.sv b/coproc/src/RAM.sv
+new file mode 100644
+index 0000000..0a288a5
+--- /dev/null
++++ b/coproc/src/RAM.sv
+@@ -0,0 +1,193 @@
++import Common::*;
++import Mem::*;
++
++module RAM (
++    input logic clk,
++    input logic rst,
++    input logic [14:0] i_switches,
++    input logic [4:0] i_buttons,
++    input logic [31:0] i_timer,
++    output logic [3:0] gpio,
++    output logic o_hypervisor_call,
++    output logic [3:0] o_hypervisor_memt,
++    output logic [31:0] o_hypervisor_addr,
++    output logic [31:0] o_hypervisor_val,
++    input Signals i_signals,
++
++    output Signals o_signals
++);
++
++    parameter int RAM_WORDS = (36 * 125 *  /* change */ 30  /* change */ / 4);
++    logic [31:0] ram[0:RAM_WORDS-1];
++    initial $readmemh("ram_file.mem", ram);
++    logic [31:0] idx;
++    logic [ 7:0] off;
++    logic [ 3:0] enable_mask;
++    logic [ 4:0] shift;
++
++    always_comb begin
++        idx = i_signals.wdata[31:0];
++        off = i_signals.wdata[7:0];
++
++        case (i_signals.memt)
++            LoadByte, ULoadByte, StoreByte: begin
++                case (idx & 'b11)
++                    'b00: begin
++                        enable_mask = 'b0001;
++                        shift = 0;
++                    end
++                    'b01: begin
++                        enable_mask = 'b0010;
++                        shift = 8;
++                    end
++                    'b10: begin
++                        enable_mask = 'b0100;
++                        shift = 16;
++                    end
++                    'b11: begin
++                        enable_mask = 'b1000;
++                        shift = 24;
++                    end
++                    default: begin
++                        enable_mask = 'b0000;
++                        shift = 0;
++                    end
++                endcase
++            end
++            LoadHalf, ULoadHalf, StoreHalf: begin
++                case (idx & 'b10)
++                    'b00: begin
++                        enable_mask = 'b0011;
++                        shift = 0;
++                    end
++                    'b10: begin
++                        enable_mask = 'b1100;
++                        shift = 16;
++                    end
++                    default: begin
++                        enable_mask = 'b0000;
++                        shift = 0;
++                    end
++                endcase
++            end
++            LoadWord, StoreWord: begin
++                enable_mask = 'b1111;
++                shift = 0;
++            end
++            default: begin
++                enable_mask = 'b0000;
++                shift = 0;
++            end
++        endcase
++    end
++
++    logic [31:0] result;
++    logic [ 1:0] memrw;
++    assign memrw = {i_signals.memr, i_signals.memw};
++
++    always_ff @(posedge clk) begin
++        result = 0;
++
++        if (rst) begin
++            o_signals.wback       <= 0;
++            o_signals.wreg        <= 0;
++            o_signals.branch      <= 0;
++            o_signals.flags.zero  <= 0;
++            o_signals.flags.carry <= 0;
++            o_signals.cond        <= Never;
++            o_signals.wdata       <= 0;
++        end else begin
++            o_signals.wback  <= i_signals.wback;
++            o_signals.wreg   <= i_signals.wreg;
++            o_signals.branch <= i_signals.branch;
++            o_signals.flags  <= i_signals.flags;
++            o_signals.cond   <= i_signals.cond;
++            o_signals.wdata  <= i_signals.wdata;
++
++            if (idx[31:28] == 'b1000) begin
++                if (i_signals.memr || i_signals.memw) begin
++                    case (i_signals.memt)
++                        LoadByte:  o_hypervisor_memt <= 1;
++                        LoadHalf:  o_hypervisor_memt <= 2;
++                        LoadWord:  o_hypervisor_memt <= 3;
++                        StoreByte: o_hypervisor_memt <= 4;
++                        StoreHalf: o_hypervisor_memt <= 5;
++                        StoreWord: o_hypervisor_memt <= 6;
++                        ULoadByte: o_hypervisor_memt <= 7;
++                        ULoadHalf: o_hypervisor_memt <= 8;
++                    endcase
++
++                    o_hypervisor_addr <= idx;
++                    o_hypervisor_val  <= i_signals.reg2;
++                end
++            end else if (idx[25] == 1 && idx[24] == 0) begin
++                if (i_signals.memr && i_signals.memt == LoadWord) begin
++                    case (off)
++                        'h00: o_signals.wdata[14:0] <= i_switches;
++                        'h04: o_signals.wdata[31:0] <= i_timer;
++                        'h08: o_signals.wdata[4:0] <= i_buttons;
++                        'h0c: o_signals.wdata[3:0] <= gpio;
++                        // exit vector
++                        'h10: begin
++                        end
++                        // hypervisor call
++                        'h14: begin
++                            o_hypervisor_call <= 1;
++                        end
++                        default: o_signals.wdata <= 0;
++                    endcase
++                end else if (i_signals.memw && i_signals.memt == StoreWord) begin
++                    case (off)
++                        'h0c: gpio <= i_signals.reg2[3:0];
++                        // exit vector
++                        'h10: $finish;
++                    endcase
++                end
++            end else if (idx[25] == 0 && idx[24] == 0) begin
++                case (memrw)
++                    'b10: begin
++                        if (enable_mask[0]) result[07:00] = ram[idx>>2][07:00];
++                        if (enable_mask[1]) result[15:08] = ram[idx>>2][15:08];
++                        if (enable_mask[2]) result[23:16] = ram[idx>>2][23:16];
++                        if (enable_mask[3]) result[31:24] = ram[idx>>2][31:24];
++
++                        case (i_signals.memt)
++                            LoadByte:  o_signals.wdata[31:0] <= 32'(signed'(result[shift+:8]));
++                            ULoadByte: o_signals.wdata[31:0] <= 32'(unsigned'(result[shift+:8]));
++                            LoadHalf:  o_signals.wdata[31:0] <= 32'(signed'(result[shift+:16]));
++                            ULoadHalf: o_signals.wdata[31:0] <= 32'(unsigned'(result[shift+:16]));
++                            LoadWord:  o_signals.wdata[31:0] <= result;
++                            default:   o_signals.wdata[31:0] <= 0;
++                        endcase
++
++                        o_signals.wdata[32] <= 0;
++                    end
++                    'b01: begin
++                        // $display("ram[0x%x](%04b) = 0x%x", idx, enable_mask, i_signals.reg2);
++
++                        case (shift)
++                            'h00: result = i_signals.reg2;
++                            'h08: result = {i_signals.reg2[23:0], 8'd0};
++                            'h10: result = {i_signals.reg2[15:0], 16'd0};
++                            'h18: result = {i_signals.reg2[07:0], 24'd0};
++                            default: result = 0;
++                        endcase
++
++                        // $display("ram[0x%x](%04b) = 0x%x", idx, enable_mask, result);
++
++                        if (enable_mask[0]) ram[idx>>2][07:00] <= result[07:00];
++                        if (enable_mask[1]) ram[idx>>2][15:08] <= result[15:08];
++                        if (enable_mask[2]) ram[idx>>2][23:16] <= result[23:16];
++                        if (enable_mask[3]) ram[idx>>2][31:24] <= result[31:24];
++
++                        o_signals.wdata <= 0;
++                    end
++                    default: begin
++                        o_signals.wdata <= i_signals.wdata;
++                    end
++                endcase
++            end
++        end
++    end
++
++endmodule
+diff --git a/coproc/src/Register.sv b/coproc/src/Register.sv
+new file mode 100644
+index 0000000..030c7ac
+--- /dev/null
++++ b/coproc/src/Register.sv
+@@ -0,0 +1,122 @@
++import Common::*;
++
++module Register (
++    input logic          clk,
++    input logic          rst,
++    input logic          stall,
++    input Signals        i_buffer,
++    input logic          i_wback,
++    input logic   [ 4:0] i_wreg,
++    input logic   [31:0] i_wdata,
++
++    output Signals        o_signals,
++    output logic   [31:0] o_debug
++);
++
++    logic [31:0] registers[31:0];
++    assign o_debug = registers[10];
++
++    Signals i_current;
++    Signals i_signals;
++    assign i_signals = stall ? i_current : i_buffer;
++
++    Insn insn;
++    assign insn = i_signals.insn;
++
++    always_ff @(posedge clk) begin
++        if (rst) begin
++            for (int i = 0; i < 32; i++) begin
++                registers[i] <= 0;
++            end
++        end else begin
++            if (i_wback) begin
++                if (i_wreg == 0) begin
++                    registers[i_wreg] <= 0;
++                end else begin
++                    // if (i_wreg == 1) begin
++                    //     $display("regs[%2d] = 0x%0x", i_wreg, i_wdata);
++                    // end
++                    registers[i_wreg] <= i_wdata;
++                end
++            end
++        end
++    end
++
++    logic [31:0] reg1;
++    logic [31:0] reg2;
++    always_comb begin
++        if (i_wreg != 0 && i_wback == 1 && insn.r.rs1 == i_wreg) begin
++            reg1 = i_wdata;
++        end else begin
++            reg1 = registers[insn.r.rs1];
++        end
++
++        if (i_wreg != 0 && i_wback == 1 && insn.r.rs2 == i_wreg) begin
++            reg2 = i_wdata;
++        end else begin
++            reg2 = registers[insn.r.rs2];
++        end
++    end
++
++    always_ff @(posedge clk) begin
++        if (!stall) begin
++            i_current <= i_buffer;
++        end
++
++        if (rst) begin
++            o_signals.reg1 <= 0;
++            o_signals.reg2 <= 0;
++        end else begin
++            // if (insn != 'h13) begin
++            //     $display("rs1 = %d", insn.r.rs1);
++            //     $display("registers[rs1] = %x", registers[insn.r.rs1]);
++            // end
++
++            // `log(("reg insn = %08x", insn));
++            case (insn.r.opcode)
++                Opcode::RegReg: begin
++                    o_signals.reg1 <= reg1;
++                    o_signals.reg2 <= reg2;
++                end
++                Opcode::RegImm: begin
++                    // if (insn.i.rd != 0) begin
++                    //     //     `log(("reg insn = %08x", insn));
++                    //     `log(("wdata = %08x", i_wdata));
++                    //     `log(("wreg = %0d", i_wreg));
++                    //     `log(("reg[wreg] = %08x", registers[i_wreg]));
++                    // end
++                    // `log(("rd = %0d, rs1 = %0d", insn.i.rd, insn.i.rs1));
++                    o_signals.reg1 <= reg1;
++                    o_signals.reg2 <= 0;
++                end
++                Opcode::Branch: begin
++                    o_signals.reg1 <= reg1;
++                    o_signals.reg2 <= reg2;
++                end
++                Opcode::Jalr: begin
++                    // `log(("\tjalr rs = %d", insn.i.rs1));
++                    // `log(("\trs      = %08x", registers[insn.i.rs1]));
++                    o_signals.reg1 <= reg1;
++                    o_signals.reg2 <= 0;
++                end
++                Opcode::Load: begin
++                    o_signals.reg1 <= reg1;
++                    o_signals.reg2 <= 0;
++                end
++                Opcode::Store: begin
++                    o_signals.reg1 <= reg1;
++                    o_signals.reg2 <= reg2;
++                end
++                default: begin
++                    o_signals.reg1 <= 0;
++                    o_signals.reg2 <= 0;
++                end
++            endcase
++        end
++
++        // if (o_signals.rs1 != 0 || o_signals.rs2 != 0) begin
++        //     `log(("rs1 = %02x, rs2 = %02x", o_signals.rs1, o_signals.rs2));
++        // end
++    end
++
++endmodule
+diff --git a/coproc/src/WriteBack.sv b/coproc/src/WriteBack.sv
+new file mode 100644
+index 0000000..4f7da54
+--- /dev/null
++++ b/coproc/src/WriteBack.sv
+@@ -0,0 +1,47 @@
++import Common::*;
++
++module WriteBack (
++    input logic   clk,
++    input logic   rst,
++    input Signals i_signals,
++
++    output Signals o_signals
++);
++
++    logic pcsel;
++
++    always_comb begin
++        case (i_signals.cond)
++            Zero:     pcsel = (i_signals.flags.zero == 1);
++            NotZero:  pcsel = (i_signals.flags.zero == 0);
++            Carry:    pcsel = (i_signals.flags.carry == 1);
++            NotCarry: pcsel = (i_signals.flags.carry == 0);
++            Always:   pcsel = 1;
++            default:  pcsel = 0;
++        endcase
++    end
++
++    always_ff @(posedge clk) begin
++        if (rst) begin
++            o_signals.pcsel <= 0;
++            o_signals.pc    <= 0;
++            o_signals.cond  <= Never;
++            o_signals.wback <= 0;
++            o_signals.wreg  <= 0;
++            o_signals.wdata <= 0;
++        end else begin
++            // if (i_signals.cond != Never) begin
++            //     $display("cond = %0d", i_signals.cond);
++            //     $display("wb pcsel = %0d", pcsel);
++            //     $display("wb branch = %0x", i_signals.branch);
++            // end
++            o_signals.pcsel <= pcsel;
++            o_signals.pc    <= i_signals.branch;
++            o_signals.cond  <= i_signals.cond;
++            o_signals.wback <= i_signals.wback;
++            o_signals.wreg  <= i_signals.wreg;
++            o_signals.wdata <= i_signals.wdata;
++        end
++    end
++
++endmodule
+diff --git a/coproc/vcpu.cpp b/coproc/vcpu.cpp
+new file mode 100644
+index 0000000..922d6b1
+--- /dev/null
++++ b/coproc/vcpu.cpp
+@@ -0,0 +1,136 @@
++// clang-format off
++#include <stdlib.h>
++#include <unistd.h>
++#include <fcntl.h>
++#include "VCPU.h"
++#include "verilated.h"
++#include "VCPU___024root.h"
++// clang-format on
++
++#define REGS (tb->rootp->CPU__DOT__regs_i__DOT__registers.m_storage)
++#define MEM (tb->rootp->CPU__DOT__ram_i__DOT__ram)
++#define WDATA (tb->rootp->CPU__DOT__mem_signals.__PVT__wdata)
++
++VCPU *tb = NULL;
++
++char *mem(unsigned int offset) {
++  if (offset >= MEM.size() * 4) {
++    printf("invalid pointer!\n");
++    exit(0);
++  }
++  return &((char *)(MEM.m_storage))[offset];
++}
++
++extern "C" void run_vcpu(int argc, char **argv, int config,
++                         long (*paccess)(long addr, int size, int read,
++                                         int val)) {
++
++  if (tb == NULL) {
++    Verilated::commandArgs(argc, argv);
++    tb = new VCPU;
++  }
++
++  int finished = 0;
++  tb->o_hypervisor_call = 0;
++  tb->o_hypervisor_memt = 0;
++  for (int i = 0; i < 16; i++) {
++    REGS[i] = 0;
++  }
++
++  tb->i_clk = 1;
++  tb->i_rst = 1;
++  tb->eval();
++  tb->i_rst = 0;
++  tb->i_clk = 0;
++  tb->eval();
++
++  tb->i_clk = 1;
++  tb->eval();
++  tb->i_clk = 0;
++  tb->eval();
++
++  printf("vcpu config = %p\n", config);
++  REGS[10] = config;
++
++  // Tick the clock until we are done
++  while (!finished) {
++    tb->i_clk = 1;
++    tb->eval();
++    tb->i_clk = 0;
++    tb->eval();
++
++    if (tb->o_hypervisor_call) {
++      int sysno = REGS[10];
++      unsigned int *args = &REGS[11];
++      // printf("hypercall = %d\n", sysno);
++
++      int ret = -1;
++      switch (sysno) {
++      case 1: {
++        printf("fail\n");
++        ret = 0;
++        break;
++      }
++      case 2: {
++        printf("pass\n");
++        ret = 0;
++        break;
++      }
++      case 3: {
++        finished = 1;
++        break;
++      }
++      case 4: {
++        write(1, mem(args[0]), args[1]);
++        break;
++      }
++      }
++
++      WDATA = ret;
++      tb->o_hypervisor_call = 0;
++    }
++
++    if (tb->o_hypervisor_memt) {
++      unsigned int addr = tb->rootp->o_hypervisor_addr;
++      unsigned int val = tb->rootp->o_hypervisor_val;
++      switch (tb->o_hypervisor_memt) {
++      case 1: {
++        WDATA = (int)(char)paccess(addr, 1, 1, 0);
++        break;
++      }
++      case 2: {
++        WDATA = (int)(short)paccess(addr, 2, 1, 0);
++        break;
++      }
++      case 3: {
++        WDATA = (int)paccess(addr, 4, 1, 0);
++        break;
++      }
++      case 4: {
++        paccess(addr, 1, 0, val);
++        break;
++      }
++      case 5: {
++        paccess(addr, 2, 0, val);
++        break;
++      }
++      case 6: {
++        paccess(addr, 4, 0, val);
++        break;
++      }
++      case 7: {
++        WDATA = (unsigned int)(char)paccess(addr, 1, 1, 0);
++        break;
++      }
++      case 8: {
++        WDATA = (unsigned int)(short)paccess(addr, 2, 1, 0);
++        break;
++      }
++      }
++      tb->o_hypervisor_memt = 0;
++    }
++  }
++
++  printf("done executing\n");
++  printf("exit code: %d\n", REGS[11]);
++}
+\ No newline at end of file
+diff --git a/hw/i386/Kconfig b/hw/i386/Kconfig
+index d34ce07..f1d02d1 100644
+--- a/hw/i386/Kconfig
++++ b/hw/i386/Kconfig
+@@ -10,6 +10,9 @@ config SGX
+     bool
+     depends on KVM
+ 
++config COPROC
++    bool
++
+ config PC
+     bool
+     imply APPLESMC
+@@ -47,6 +50,7 @@ config PC
+     select VIRTIO_PMEM_SUPPORTED
+     select VIRTIO_MEM_SUPPORTED
+     select HV_BALLOON_SUPPORTED
++    select COPROC
+ 
+ config PC_PCI
+     bool
+diff --git a/hw/i386/coproc.c b/hw/i386/coproc.c
+new file mode 100644
+index 0000000..6b05738
+--- /dev/null
++++ b/hw/i386/coproc.c
+@@ -0,0 +1,114 @@
++// clang-format off
++#include "qemu/osdep.h"
++#include "qemu/host-utils.h"
++#include "qemu/module.h"
++
++#include "hw/isa/isa.h"
++#include "hw/qdev-properties.h"
++
++#include "exec/memory.h"
++
++#include "qemu/typedefs.h"
++#include "cpu.h"
++#include "qom/object.h"
++
++// clang-format on
++
++extern int run_vcpu(int argc, const char **argv, int config,
++                    long (*)(long, int, int, int));
++
++#define TYPE_COPROC_DEVICE "coproc"
++OBJECT_DECLARE_SIMPLE_TYPE(CoprocState, COPROC_DEVICE)
++
++struct CoprocState {
++  ISADevice parent_obj;
++
++  uint32_t iobase;
++  uint32_t iosize;
++  MemoryRegion io;
++};
++
++static long paccess(long addr, int size, int read, int val) {
++  CPUState *cs = qemu_get_cpu(0);
++  addr &= ~(1 << 31);
++
++  if (read) {
++    int val;
++    switch (size) {
++    case 1:
++      val = x86_ldub_phys(cs, addr);
++    case 2:
++      val = x86_lduw_phys(cs, addr);
++    case 4:
++      val = x86_ldl_phys(cs, addr);
++    }
++    // printf("read [%p] (%d) = %p\n", addr, size, val);
++    return val;
++  } else {
++    // printf("write [%p] (%d) = %p\n", addr, size, val);
++    switch (size) {
++    case 1:
++      x86_stb_phys(cs, addr, val);
++      break;
++    case 2:
++      x86_stw_phys(cs, addr, val);
++      break;
++    case 4:
++      x86_stl_phys(cs, addr, val);
++      break;
++    }
++    return 0;
++  }
++}
++
++static uint64_t coproc_read(void *opaque, hwaddr addr, unsigned size) {
++  const char *argv[] = {"coproc", NULL};
++  CPUState *cs = qemu_get_cpu(0);
++  int config = cpu_env(cs)->regs[R_EAX];
++  run_vcpu(1, argv, config, paccess);
++  return 0;
++}
++
++static void coproc_write(void *opaque, hwaddr addr, uint64_t val,
++                         unsigned width) {}
++
++static const MemoryRegionOps coproc_ops = {
++    .read = coproc_read,
++    .write = coproc_write,
++    .valid.min_access_size = 1,
++    .valid.max_access_size = 4,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++};
++
++static void coproc_realizefn(DeviceState *d, Error **errp) {
++  ISADevice *dev = ISA_DEVICE(d);
++  CoprocState *isa = COPROC_DEVICE(d);
++
++  memory_region_init_io(&isa->io, OBJECT(dev), &coproc_ops, isa,
++                        TYPE_COPROC_DEVICE, isa->iosize);
++  memory_region_add_subregion(isa_address_space_io(dev), isa->iobase, &isa->io);
++}
++
++static const Property coproc_properties[] = {
++    DEFINE_PROP_UINT32("iobase", CoprocState, iobase, 0x501),
++    DEFINE_PROP_UINT32("iosize", CoprocState, iosize, 0x02),
++};
++
++static void coproc_class_initfn(ObjectClass *klass, void *data) {
++  DeviceClass *dc = DEVICE_CLASS(klass);
++
++  dc->realize = coproc_realizefn;
++  device_class_set_props(dc, coproc_properties);
++  set_bit(DEVICE_CATEGORY_MISC, dc->categories);
++}
++
++static const TypeInfo coproc_info = {
++    .name = TYPE_COPROC_DEVICE,
++    .parent = TYPE_ISA_DEVICE,
++    .instance_size = sizeof(CoprocState),
++    .class_init = coproc_class_initfn,
++};
++
++static void coproc_register_types(void) { type_register_static(&coproc_info); }
++
++type_init(coproc_register_types)
+diff --git a/hw/i386/meson.build b/hw/i386/meson.build
+index 10bdfde..2ea51a6 100644
+--- a/hw/i386/meson.build
++++ b/hw/i386/meson.build
+@@ -8,6 +8,8 @@ i386_ss.add(files(
+   'x86-cpu.c',
+ ))
+ 
++i386_ss.add(when: 'CONFIG_COPROC', if_true: files('coproc.c'))
++
+ i386_ss.add(when: 'CONFIG_APIC', if_true: files('vapic.c'))
+ i386_ss.add(when: 'CONFIG_X86_IOMMU', if_true: files('x86-iommu.c'),
+                                       if_false: files('x86-iommu-stub.c'))
+diff --git a/meson.build b/meson.build
+index 41f68d3..2905547 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1019,6 +1019,8 @@ have_xen_pci_passthrough = get_option('xen_pci_passthrough') \
+ # Dependencies #
+ ################
+ 
++vcpu = cc.find_library('vcpu', required: true, dirs: '/build/qemu/coproc')
++
+ # When bumping glib minimum version, please check also whether to increase
+ # the _WIN32_WINNT setting in osdep.h according to the value from glib.
+ # You should also check if any of the glib.version() checks
+@@ -4270,7 +4272,7 @@ foreach target : target_dirs
+       'name': 'qemu-system-' + target_name,
+       'win_subsystem': 'console',
+       'sources': files('system/main.c'),
+-      'dependencies': [sdl]
++      'dependencies': [sdl, vcpu]
+     }]
+     if host_os == 'windows' and (sdl.found() or gtk.found())
+       execs += [{

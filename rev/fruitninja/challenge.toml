@@ -1,0 +1,14 @@
+id = "rev-fruitninja"
+name = "Fruit Ninja"
+author = "flocto"
+description = "my friend made a custom cpu, so of course i had to make a game for it. can you win? @unvariant REMEMBER TO GIVE THEM CPU "
+category = "rev"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "src/flag.txt"
+
+[[provide]]
+dir = "dist/"
+as = "fruitninja"

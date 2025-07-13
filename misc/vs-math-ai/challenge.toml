@@ -1,0 +1,28 @@
+id = "misc-vs-math-ai"
+name = "vs-math-ai"
+author = "jayden"
+description = """rip view source 2022-2024. but why did they leave us a gpt wrapper? 🤢
+
+note: goal is to get rce. flag is in `./flag.txt`.
+"""
+category = "misc"
+points.min = 50
+points.max = 500
+strategy = "instanced"
+
+[flag]
+file = "chall/server/flag.txt"
+
+[container.main]
+build = "chall/frontend"
+
+[container.main.env]
+EVAL_SERVER = "http://server:3000"
+AZURE_API_KEY = ""
+AZURE_RESOURCE_NAME = ""
+
+[container.main.expose]
+3000 = "http"
+
+[container.server]
+build = "chall/server"

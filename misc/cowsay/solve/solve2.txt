@@ -1,0 +1,1 @@
+rawset(getmetatable(cowsay), "__tostring", secure.printflag) and cowsay(cowsay)

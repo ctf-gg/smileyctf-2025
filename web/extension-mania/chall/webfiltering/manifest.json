@@ -1,0 +1,25 @@
+{
+  "manifest_version": 2,
+  "name": "Aggressive Web Filter",
+  "description": "Overfilter stuff anywhere! Stuck in MV2 land sadly because of webRequestBlocking perms and I don't want to write a chrome policy for this.",
+  "version": "1.0",
+  "permissions": [
+    "webRequest",
+    "webRequestBlocking",
+    "<all_urls>"
+  ],
+ "background": {
+    "scripts": ["js/background.js"],
+    "persistent": true
+  },
+  "content_scripts": [],
+  "web_accessible_resources": [
+    "block_page.html"
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

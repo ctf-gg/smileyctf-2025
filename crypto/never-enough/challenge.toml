@@ -1,0 +1,14 @@
+id = "crypto-never-enough"
+name = "never enough"
+author = "snow"
+description = "Sometimes whats never enough for someone is more than enough for someone else."
+category = "crypto"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "src/flag.txt"
+
+[[provide]]
+dir = "dist/"
+as = "enough"

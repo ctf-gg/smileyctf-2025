@@ -1,0 +1,18 @@
+id = "rev-tables"
+name = "tables"
+author = "lunbun"
+description = """
+After the last incident with young Bobby Tables, we found this mysterious binary on our systems. It seems to want a login, but we can't figure out what it's doing.
+
+hint: for the past 24 hours, our "unpaid intern" has been ~~forced to~~ willingly stare at the values in the tables. he gets the sense that they vaguely resemble something that he (and you) are very familiar with, but he can't quite nail it down. ""im seeing patterns in the numbers" - words from some person being called a schizo by his teammates" - quasar
+"""
+category = "rev"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "src/flag.txt"
+
+[[provide]]
+dir = "dist/"
+as = "tables"

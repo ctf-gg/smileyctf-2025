@@ -1,0 +1,19 @@
+id = "web-extension-mania-revenge"
+name = "Extension Mania revenge"
+author = "smashmaster"
+description = "see previous challenge for actual desc, this is why you don't impl stuff when sleep deprived"
+category = "web"
+points.min = 50
+points.max = 500
+flag = ".;,;.{th3_d0wns1d3s_0f_3xt_ap1_abus3_and_r0ll1ng_y0ur_0wn_ur1_pars3rs_and_try1ng_t0d0_0bscur3_chall_f0rmats_p1us_h3adl3ss_chr0m3_p1ta}"
+strategy = "instanced"
+
+[container.default]
+build = "chall/"
+
+[container.default.expose]
+3000 = "http"
+
+[[provide]]
+dir = "dist/"
+as = "extension-mania-revenge"

@@ -1,0 +1,14 @@
+id = "forensics-rorecovery3"
+name = "rorecovery3"
+author = "neil"
+description = "an old builder left this behind seems like his girlfriend threw his computer out the window too. everything at LEAST seems randomly placed... until you LOOK closer."
+category = "forensics"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "src/flag.txt"
+
+[[provide]]
+dir = "dist/"
+as = "rorecovery3"

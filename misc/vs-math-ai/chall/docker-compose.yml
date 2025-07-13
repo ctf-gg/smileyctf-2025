@@ -1,0 +1,28 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./logs:/app/conversation-logs
+    environment:
+      - EVAL_SERVER=http://server:3000
+      - AZURE_API_KEY=
+      - AZURE_RESOURCE_NAME=
+    depends_on:
+      - server
+    networks:
+      - app_network
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge

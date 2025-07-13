@@ -1,0 +1,23 @@
+id = "misc-ti-1983"
+name = "TI-1983"
+author = "snow"
+description = "Nothing wrong here. Nope. Stev the intern is very good at writing code."
+category = "misc"
+points.min = 50
+points.max = 500
+build_group = "windows"
+strategy = "instanced"
+host = "windows"
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+
+[container.default.expose]
+80 = "http"
+
+[[provide]]
+dir = "dist/"
+as = "ti-1983"

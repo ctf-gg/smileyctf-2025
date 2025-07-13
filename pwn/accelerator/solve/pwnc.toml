@@ -1,0 +1,4 @@
+[kernel.initramfs]
+path = "/home/unvariant/ctf/development/smileyctf-2025/pwn/accelerator/solve/dist/initramfs.cpio.gz"
+gzipped = false
+rootfs = "/home/unvariant/ctf/development/smileyctf-2025/pwn/accelerator/solve/rootfs"

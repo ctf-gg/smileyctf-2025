@@ -1,0 +1,21 @@
+id = "pwn-debuggable-1"
+name = "debuggable-1"
+author = "unvariant"
+description = "AAAAAAAAAAAAAAAAAAAAAAAAA"
+category = "pwn"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+privileged = true
+
+[container.default.expose]
+5000 = "tcp"
+
+[[provide]]
+dir = "dist/"
+as = "debuggable-1"

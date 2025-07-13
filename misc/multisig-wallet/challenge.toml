@@ -1,0 +1,22 @@
+id = "misc-multisig-wallet"
+name = "multisig-wallet"
+author = "Broken Appendix"
+description = "This multisig wallet lets the owners distribute a shared fund of tokens. Distribute all the tokens in the wallet without the controllers' permission.\ndo note - the rpc url says 0.0.0.0:8545 on the api, it is actually the second url we gave you for your instance "
+category = "misc"
+points.min = 50
+points.max = 500
+strategy = "instanced"
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+
+[container.default.expose]
+8545 = "http"
+3000 = "http"
+
+[[provide]]
+dir = "dist/"
+as = "multisig-wallet"

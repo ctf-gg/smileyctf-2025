@@ -1,0 +1,14 @@
+id = "forensics-rorecovery1"
+name = "rorecovery1"
+author = "neil"
+description = "this file was corrupted after my girlfriend threw my PC out the window! help!!!"
+category = "forensics"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "src/flag.txt"
+
+[[provide]]
+dir = "dist/"
+as = "rorecovery12"

@@ -1,0 +1,21 @@
+id = "crypto-a-special-place-in-reality"
+name = "a special place in reality"
+author = "helloperson"
+description = "Well my RSA just isn't decrypting anymore so I'll just give you an oracle which gives you information about my messages. Maybe you can piece it back together?"
+category = "crypto"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+privileged = true
+
+[container.default.expose]
+5000 = "tcp"
+
+[[provide]]
+dir = "dist/"
+as = "a-special-place-in-reality"

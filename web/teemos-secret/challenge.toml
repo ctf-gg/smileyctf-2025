@@ -1,0 +1,22 @@
+id = "web-teemos-secret"
+name = "Teemo's Secret"
+author = "Chara"
+description = """O Teemo i wonder what have u looked at"""
+category = "web"
+points.min = 50
+points.max = 500
+strategy = "instanced"
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+limits = { cpu = 500000000, mem = 2147483648 }
+
+[container.default.expose]
+7382 = "http"
+
+[[provide]]
+dir = "dist/"
+as = "teemos-secret"

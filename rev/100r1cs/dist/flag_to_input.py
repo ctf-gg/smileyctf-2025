@@ -1,0 +1,1 @@
+print(__import__('json').dumps({"flag_bits": list(map(int, "0"*(8-(len((x:=bin(int(open("flag.txt", "rb").read().strip().hex(),16))[2:]))%8))+x)),}))

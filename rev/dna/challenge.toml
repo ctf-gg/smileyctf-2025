@@ -1,0 +1,18 @@
+id = "rev-dna"
+name = "DNA"
+author = "flocto"
+description = """deoxy ribo nucleic acid
+deoxy meaning without oxygen
+ribo meaning the 5-carbon sugar backbone
+nucleic meaning of the nucleus
+acid meaning proton donor"""
+category = "rev"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "src/flag.txt"
+
+[[provide]]
+dir = "dist/"
+as = "dna"

@@ -1,0 +1,14 @@
+challenge_name: "multisig wallet"
+challenge_description: "This multisig wallet lets the owners distribute a shared fund of tokens. Distribute all the tokens in the wallet without the controllers' permission."
+setup_contract_name: "SetupLocker" # contract that deploys the challenge and checks if it's complete, should inherit Setup.sol
+flag: ".;,;.{sig_replay_kills_multisig}"
+block_time: 0
+
+# Optional flags
+player_initial_balance: 2
+contract_initial_balance: 2
+# enable_faucet: false
+# challenge_solve_type: "function"
+challenge_source_files: # source file provided to player
+  - "Locker.sol"
+  - "Setup.sol"

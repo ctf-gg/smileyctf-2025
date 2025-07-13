@@ -1,0 +1,17 @@
+version: "3.3"
+services:
+  api:
+    build: .
+    image: ghcr.io/downunderctf/eth-challenge-base/eth-challenge:latest
+    container_name: blockchain_challenge_manager
+    environment:
+      - DEPLOYER_PRIVATE_KEY=35d7e3183bbe3e89907724a7c50a1e3f7207af30d169812534558f3591e27b31
+      # - CONFIG_FILE_NAME=challenge.yaml
+    ports:
+      - 3000:3000
+    restart: "no"
+
+
+
+networks:
+  default:

@@ -1,0 +1,1 @@
+rawset(getmetatable(cowsay), "__tostring", error) and xpcall(cowsay.print, secure.printflag, cowsay)

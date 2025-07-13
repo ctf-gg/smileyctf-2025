@@ -1,0 +1,28 @@
+id = "web-teemos-secret-v2"
+name = "Teemo's Secret v2"
+author = "Chara"
+description = """
+O Teemo u r just too shining i can't open my eye
+
+the infrastructure for this challenge is down until further notice. 
+please join the discord and open the ticket when you have a working local solve.
+"""
+category = "web"
+points.min = 50
+points.max = 500
+strategy = "instanced"
+visible = false
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+limits = { cpu = 500000000, mem = 134217728 }
+
+[container.default.expose]
+7382 = "http"
+
+[[provide]]
+dir = "dist/"
+as = "teemos-secret-v2"

@@ -1,0 +1,26 @@
+id = "web-dry-ice-n-co"
+name = "dry-ice-n-co"
+author = "voxal"
+description = """Hi. I'm opening up my shop for you to buy my favorite thing in the world. DRY ICE!!!
+
+Use coupon code `SMILEICE` at checkout for 20% off! That's coupon code `SMILEICE` at checkout for 20% off!
+"""
+category = "web"
+points.min = 50
+points.max = 500
+strategy = "instanced"
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall"
+
+[container.default.expose]
+8080 = "http"
+
+[[provide]]
+dir = "dist/"
+as = "dry-ice-n-co"
+
+# ab

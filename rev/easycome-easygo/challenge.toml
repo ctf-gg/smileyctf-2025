@@ -1,0 +1,14 @@
+id = "rev-easycome-easygo"
+name = "Easy Come Easy Go"
+author = "flocto"
+description = "any way the wind blows"
+category = "rev"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "src/flag.txt"
+
+[[provide]]
+dir = "dist/"
+as = "easycome-easygo"

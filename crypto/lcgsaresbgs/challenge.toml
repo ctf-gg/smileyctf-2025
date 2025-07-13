@@ -1,0 +1,14 @@
+id = "crypto-lcgs-are-sbgs"
+name = "LCGs are SBGs"
+author = "SBG"
+description = "The wise Neobeo and Genni once told me a burrito recipe, but I forgot it! Remind me, what is the perfect burrito recipe?"
+category = "crypto"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "src/flag.txt"
+
+[[provide]]
+dir = "dist/"
+as = "lcgs-are-sbgs"

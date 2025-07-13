@@ -1,0 +1,1 @@
+Measure-Command {start-process yasm -argumentlist "-felf64 insn.s -o insn.o" -Wait -NoNewWindow}

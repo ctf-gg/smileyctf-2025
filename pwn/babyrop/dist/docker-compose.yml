@@ -1,0 +1,7 @@
+version: '3.3'
+services:
+  chal:
+    build: .
+    ports:
+      - 42123:1337
+    privileged: true

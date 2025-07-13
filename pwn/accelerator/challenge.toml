@@ -1,0 +1,25 @@
+id = "pwn-accelerator"
+name = "accelerator"
+author = "unvariant"
+description = """
+We found this old system that claims to have hardware accelerated image processing capabilities, but we can't figure out how to interact with it! There is also a strange program located in /bin/check that seems to communicate with the device.
+
+HINT: The source for the rom running on the coprocessor is in the dist. Please redownload. The goal of challenge is to find a bug in the coprocessor to escalate your privileges and read the flag located in /dev/sda.
+"""
+category = "pwn"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+privileged = true
+
+[container.default.expose]
+5000 = "tcp"
+
+[[provide]]
+dir = "dist/"
+as = "accelerator"

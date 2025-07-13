@@ -1,0 +1,19 @@
+id = "web-extension-mania"
+name = "Extension Mania"
+author = "smashmaster"
+description = "can't stop doing tiny patched zero days as ctf challenges xd, you may find this one relatable"
+category = "web"
+points.min = 50
+points.max = 500
+flag = ".;,;.{th3_d0wns1d3s_0f_3xt_ap1_abus3_and_r0ll1ng_y0ur_0wn_ur1_pars3rs}"
+strategy = "instanced"
+
+[container.default]
+build = "chall/"
+
+[container.default.expose]
+3000 = "http"
+
+[[provide]]
+dir = "dist/"
+as = "extension-mania"

@@ -1,0 +1,23 @@
+id = "misc-project-holoswap"
+name = "Project Holoswap"
+author = "Sahuang"
+description = """After their graduation, .;,;. sealed away the souls of Gura and Amelia in an archive AI. Now, a glitch gives you one chance to spoof the system.
+
+<i>“a... that's kinda sus...”</i>
+"""
+category = "misc"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+
+[container.default.expose]
+1337 = "tcp"
+
+[[provide]]
+dir = "dist/"
+as = "project-holoswap"

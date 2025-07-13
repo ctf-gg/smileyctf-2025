@@ -1,0 +1,20 @@
+id = "pwn-blargh"
+name = "blargh"
+author = "nootkroot"
+description = "blargh"
+category = "pwn"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+
+[container.default.expose]
+1337 = "tcp"
+
+[[provide]]
+dir = "dist/"
+as = "blargh"

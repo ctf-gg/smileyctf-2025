@@ -1,0 +1,22 @@
+id = "web-leaf"
+name = "Leaf"
+author = "Chara"
+description = "I always think leaf ~= tea. Please allow remote to have some time to boot the browser. "
+category = "web"
+points.min = 50
+points.max = 500
+visible = true
+strategy = "instanced"
+
+[flag]
+file = "chall/flag.txt"
+
+[container.default]
+build = "chall/"
+
+[container.default.expose]
+8800 = "http"
+
+[[provide]]
+dir = "dist/"
+as = "leaf"

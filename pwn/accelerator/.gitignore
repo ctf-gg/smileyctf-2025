@@ -1,0 +1,12 @@
+qemu/
+linux/
+rootfs/
+module/.cache
+module/compile_commands.json
+module/*.cmd
+module/*.o
+module/*.mod
+module/*.mod.c
+module/*.symvers
+module/*.order
+busybox/

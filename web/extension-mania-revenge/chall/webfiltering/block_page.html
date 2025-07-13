@@ -1,0 +1,78 @@
+<!-- Yes, ChatGPT wrote this -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Denied</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #2e2e38;
+            color: #d0d0d0;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .content {
+            width: 100%;
+        }
+        .banner {
+            background-color: #00aee8;
+            padding: 30px 0;
+        }
+        .icon {
+            margin-bottom: 10px;
+            margin-top: -20px;
+        }
+        .icon svg {
+            width: 48px;
+            height: 48px;
+            fill: none;
+            stroke: #00aee8;
+            stroke-width: 2;
+        }
+        .title {
+            font-size: 18px;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        .message {
+            font-size: 16px;
+            color: #fff;
+        }
+        .footer {
+            font-size: 12px;
+            color: #666;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <div class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" />
+                <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" fill="none" />
+            </svg>
+        </div>
+        <div class="title">Aggressive Web Filtering</div>
+        <div class="banner">
+            <div class="message">
+                Oops,<br>
+                <strong id="hostname"></strong><br>
+                is not available because it is categorized as <span id="reason"></span>
+            </div>
+        </div>
+        <div class="footer">
+            You are logged in as <strong>user@example.com</strong>
+        </div>
+    </div>
+    <script src="block_page.js"></script>
+        
+</body>
+</html>

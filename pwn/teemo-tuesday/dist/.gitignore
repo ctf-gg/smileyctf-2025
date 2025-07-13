@@ -1,0 +1,5 @@
+*.rop
+test
+test.py
+vdso
+test.zig

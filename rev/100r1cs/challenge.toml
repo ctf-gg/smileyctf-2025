@@ -1,0 +1,18 @@
+id = "rev-100r1cs"
+name = "100r1cs"
+author = "snow"
+description = """ive been at the crib going crazy
+
+hint: I've always found that its far easier to reverse something when you aren't looking at the raw values. Unfortunately a public decompiler for r1cs doesn't exist... so you may have to make one. Also, our unpaid intern working on this said: ""im seeing repeats in the equations" - words from some person being called a schizo by his teammates" - cinabun, almost like alot of the constraints are from a single template being called several times...... 
+"""
+category = "rev"
+points.min = 50
+points.max = 500
+build_group = "dont-nuke"
+
+[flag]
+file = "src/flag.txt"
+
+[[provide]]
+dir = "dist/"
+as = "100r1cs"

@@ -1,0 +1,14 @@
+id = "rev-fortran"
+name = "fORtran"
+author = "neil"
+description = "forensics and fortran... basically the same right?"
+category = "rev"
+points.min = 50
+points.max = 500
+
+[flag]
+file = "src/flag.txt"
+
+[[provide]]
+dir = "dist/"
+as = "fORtran"

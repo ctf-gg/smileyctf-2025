@@ -1,0 +1,1 @@
+If you don't know how to solve a POW, here you go: [https://storage.amateurs.team/voxal_pow_tutorial.mp4](https://storage.amateurs.team/voxal_pow_tutorial.mp4), other than that read the main.py source code.

